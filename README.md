@@ -48,7 +48,7 @@ changes.
 All DDL changes are kept in subdirectories under `sql/patches` with a SHA1 hash and the change description in the directory name.
 
 Each patch directory contains :
-    - upgrade.sql 
+    - upgrade.sql
     - downgrade.sql.orig (optional)
     - prev.txt
     - description.txt
@@ -69,23 +69,3 @@ the case of multiple heads, an upgrade will abort.
 
 description.txt includes the comment which is passed to --ddlcreate
 
-
-## Adding a new dependency
-```
-# Checkout project into proper workspace
-export GOPATH=~/FindMyDevice-workspace
-git clone git@github.com:mozilla-services/FindMyDevice.git $GOPATH/src/github.com/mozilla-services/FindMyDevice
-
-cd $GOPATH/src/github.com/mozilla-services/FindMyDevice
-
-# Restore current deps to workspace
-godep restore
-
-# Add your new dep
-go get github.com/mozilla-services/heka/client
-
-# Save deps
-godep save ./...
-```
-
-Then, commit `Godeps.json` and `Godeps/_workspace/src/github.com/mozilla-services/heka/`.

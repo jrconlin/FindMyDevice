@@ -348,6 +348,17 @@ func (self *Handler) verifyPersonaAssertion(assertion string) (userid, email str
 	return userid, email, nil
 }
 
+func (r *Handler) checkTLSPin(resp http.Response) bool {
+	hash := r.config.Get("tls.pin_hash", "")
+	if len(hash) == 0 {
+		return true
+	}
+	// TODO:: finish this based on guidance about what how the hash would
+	// be constructed.
+
+	return false
+}
+
 func (self *Handler) verifyFxAAssertion(assertion string) (userid, email string, err error) {
 	if len(assertion) != len(strings.Map(assertionFilter, assertion)) {
 		self.logger.Error(self.logCat, "Assertion contains invalid characters.",
@@ -416,6 +427,9 @@ func (self *Handler) verifyFxAAssertion(assertion string) (userid, email string,
 		self.logger.Error(self.logCat, "FxA verification failed",
 			util.Fields{"error": err.Error()})
 		return "", "", err
+	}
+	if !r.checkTLSPin(res) {
+		return "", "", errors.New("TLS did not match pin'd hash")
 	}
 	buff, raw, err := parseBody(res.Body)
 	if err != nil {
