@@ -1379,11 +1379,21 @@ func (self *Handler) Cmd(resp http.ResponseWriter, req *http.Request) {
 					store.PurgeCommands(deviceId)
 				}
 				err = self.updatePage(deviceId, c, margs, false)
-			case "q":
-				// User has quit, nuke what we know.
-				if self.config.GetFlag("cmd.q.allow") {
-					err = store.DeleteDevice(deviceId)
+			case "e":
+				// erase requested.
+				self.logger.Debug(self.logCat,
+					"Deleting device",
+					util.Fields{"deviceId": devRec.ID})
+				if err = store.DeleteDevice(devRec.ID); err != nil {
+					self.logger.Warn(self.logCat, "Could not delete device",
+						util.Fields{"error": err.Error(),
+							"deviceId": devRec.ID,
+							"userId":   devRec.User})
+					http.Error(resp, "\"Server Error\"",
+						http.StatusServiceUnavailable)
+					return
 				}
+				self.updatePage(deviceId, c, margs, false)
 			default:
 				err = self.updatePage(deviceId, c, margs, false)
 			}
@@ -1424,17 +1434,6 @@ func (self *Handler) Cmd(resp http.ResponseWriter, req *http.Request) {
 	resp.Header().Add("Authorization", authHeader)
 	self.metrics.Increment("cmd.send." + ctype)
 	if ctype == "e" {
-		self.logger.Debug(self.logCat,
-			"Deleting device",
-			util.Fields{"deviceId": devRec.ID})
-		if err = store.DeleteDevice(devRec.ID); err != nil {
-			self.logger.Warn(self.logCat, "Could not delete device",
-				util.Fields{"error": err.Error(),
-					"deviceId": devRec.ID,
-					"userId":   devRec.User})
-			http.Error(resp, "\"Server Error\"", http.StatusServiceUnavailable)
-			return
-		}
 	}
 	if self.config.GetFlag("debug.show_output") {
 		self.logger.Debug(self.logCat,
@@ -1525,9 +1524,6 @@ func (self *Handler) Queue(devRec *storage.Device, cmd string, args, rep *replyT
 		}
 	case "e": // erase
 		rargs = replyType{}
-		// Delete the device
-		return http.StatusOK, ErrDeviceDeleted
-
 	default:
 		self.logger.Warn(self.logCat, "Invalid Command",
 			util.Fields{"cmd": string(cmd),
